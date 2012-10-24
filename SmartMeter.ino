@@ -20,7 +20,7 @@ struct obis {
 };
 
 byte mac[6] = {
-  0x90, 0xA2, 0xDA, 0x0d, 0x5c, 0x21 };  
+  0x90, 0xA2, 0xDA, 0x0d, 0x5b, 0xec };  
 IPAddress ip(192,168,223,24);
 IPAddress gateway(192,168,223, 5);
 IPAddress subnet(255, 255, 255, 128);
@@ -54,7 +54,7 @@ char topic[64];
 char Value[10][12];
 char buffer[64];
 byte bIndex;
-//char s[16];
+long datagrams;
 
 const char *message[] = {
   "powerusage1","powerusage2","powerdelivery1","powerdelivery2","powerrate","powerusagec","powerdeliveryc","gasusage"}; 
@@ -164,6 +164,10 @@ void setup()
 {
   int i;
 
+  pinMode(2,INPUT);
+  pinMode(A2,OUTPUT);
+  digitalWrite(A2,1);
+  
   Serial.begin(9600);
   UCSR0C = (UCSR0C & B11000001 ) | B00000100 | B00100000;     // 7 bit even parity
 
@@ -198,10 +202,11 @@ void setup()
   while(timeStatus()== timeNotSet)   
     ; // wait until the time is set by the sync provider
 
-  i = client.connect("smarty");
+  i = client.connect("smarty-1");
   ltoa (now(),Value[0],10);
   publish("hello",Value[0]);
   bIndex = 0;
+  datagrams = 0;
 }
 
 void loop()
@@ -211,7 +216,9 @@ void loop()
   unsigned long t = now();
   int a;
   struct obis po;
-
+  
+  digitalWrite(A2,!digitalRead(2));
+  
   // Check for serial input 
   if (Serial.available() > 0) {
     // read the incoming byte:
@@ -231,7 +238,7 @@ void loop()
         for (i=0;i<8;i++) {
           publish((char*)message[i],Value[i]);
         }
-
+        datagrams++;
         //x = micros() - x;
         //sprintf(buffer,"%ld us",x);
         //publish("Timer/Elapsed",buffer);
@@ -294,6 +301,8 @@ void loop()
     psecond = t;
     ltoa (t,Value[0],10);
     publish("timestamp", Value[0]);
+    ltoa (datagrams,Value[0],10);
+    publish("datagrams", Value[0]);
     Ethernet.maintain();
   }
 
