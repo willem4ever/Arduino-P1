@@ -20,7 +20,8 @@ struct obis {
 };
 
 byte mac[6] = {
-  0x90, 0xA2, 0xDA, 0x0d, 0x5b, 0xec };  
+  0x90, 0xA2, 0xDA, 0x0d, 0x5c, 0x21 }; 
+  
 IPAddress ip(192,168,223,24);
 IPAddress gateway(192,168,223, 5);
 IPAddress subnet(255, 255, 255, 128);
@@ -53,6 +54,7 @@ const  long timeZoneOffset = 0L; // set this to the offset in seconds to your lo
 char topic[64];
 char Value[10][12];
 char buffer[64];
+char scratch[20];
 byte bIndex;
 long datagrams;
 
@@ -171,10 +173,10 @@ void setup()
   Serial.begin(9600);
   UCSR0C = (UCSR0C & B11000001 ) | B00000100 | B00100000;     // 7 bit even parity
 
-  //for (i=0;i<6;i++)
-  //  EEPROM.write(i, mac[i]);
+  //for (i=0;i<5;i++)
+  //   EEPROM.write(i, mac[i]);
 
-  for (i=0;i<6;i++)
+  for (i=0;i<5;i++)
     mac[i]=EEPROM.read(i);
 
   Serial.println(dhcpNtp);
@@ -201,10 +203,14 @@ void setup()
 
   while(timeStatus()== timeNotSet)   
     ; // wait until the time is set by the sync provider
-
-  i = client.connect("smarty-1");
-  ltoa (now(),Value[0],10);
-  publish("hello",Value[0]);
+  
+  // create unique client name based on mac address
+  sprintf(buffer,"smarty%x%x%x",mac[3],mac[4],mac[5]);
+  i = client.connect(buffer);
+  
+  ltoa (now(),scratch,10);
+  publish("hello",scratch);
+  
   bIndex = 0;
   datagrams = 0;
 }
@@ -299,10 +305,12 @@ void loop()
   if( t % 60 == 0  && t != pminute) { //update the display only if the time has changed
     pminute = t;
     psecond = t;
-    ltoa (t,Value[0],10);
-    publish("timestamp", Value[0]);
-    ltoa (datagrams,Value[0],10);
-    publish("datagrams", Value[0]);
+    
+    ltoa (t,scratch,10);
+    publish("timestamp", scratch);
+    ltoa (datagrams,scratch,10);
+    publish("datagrams", scratch);
+    
     Ethernet.maintain();
   }
 
